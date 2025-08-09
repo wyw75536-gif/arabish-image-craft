@@ -118,6 +118,106 @@ const Index = () => {
     }
   };
 
+  const handleExportVideo = async (url: string) => {
+    try {
+      toast({ title: "جارٍ إنشاء فيديو", description: "قد يستغرق بضع ثوانٍ..." });
+
+      // جلب الصورة كـ Blob لتجنب مشاكل CORS على الـ canvas
+      const res = await fetch(url);
+      const imgBlob = await res.blob();
+      const objectUrl = URL.createObjectURL(imgBlob);
+
+      // إعداد الصورة
+      const loadImage = (): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = (e) => reject(e);
+        image.src = objectUrl;
+      });
+
+      const imageEl = await loadImage();
+
+      const width = 1280, height = 720, fps = 30, duration = 6000; // 6 ثوانٍ
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('no-2d-context');
+
+      // مسجل الفيديو من الـ canvas
+      const stream = canvas.captureStream(fps);
+      const chunks: BlobPart[] = [];
+      const tryOptions: MediaRecorderOptions[] = [
+        { mimeType: 'video/webm;codecs=vp9' },
+        { mimeType: 'video/webm;codecs=vp8' },
+        { mimeType: 'video/webm' },
+        {}
+      ];
+      let recorder: MediaRecorder | null = null;
+      for (const opt of tryOptions) {
+        try { recorder = new MediaRecorder(stream, opt); break; } catch {}
+      }
+      if (!recorder) throw new Error('MediaRecorder-unsupported');
+      recorder.ondataavailable = (e) => e.data?.size && chunks.push(e.data);
+
+      const start = performance.now();
+      recorder.start(100);
+
+      const drawFrame = (now: number) => {
+        const t = Math.min(1, (now - start) / duration);
+        const scale = 1 + 0.12 * t; // تكبير بسيط
+        const panX = -0.2 * (width * (scale - 1));
+        const panY = -0.2 * (height * (scale - 1));
+
+        // حساب تغطية الصورة لقماش الفيديو
+        const imgAspect = imageEl.naturalWidth / imageEl.naturalHeight;
+        const canvasAspect = width / height;
+        let dw = width, dh = height, dx = 0, dy = 0;
+        if (imgAspect > canvasAspect) {
+          dh = height;
+          dw = dh * imgAspect;
+          dx = (width - dw) / 2;
+          dy = 0;
+        } else {
+          dw = width;
+          dh = dw / imgAspect;
+          dx = 0;
+          dy = (height - dh) / 2;
+        }
+
+        ctx.save();
+        ctx.clearRect(0, 0, width, height);
+        ctx.translate(panX, panY);
+        ctx.scale(scale, scale);
+        ctx.drawImage(imageEl, dx, dy, dw, dh);
+        ctx.restore();
+
+        if (t < 1) requestAnimationFrame(drawFrame);
+        else recorder!.stop();
+      };
+
+      requestAnimationFrame(drawFrame);
+
+      const videoBlob: Blob = await new Promise((resolve) => {
+        recorder!.onstop = () => resolve(new Blob(chunks, { type: chunks[0] ? (chunks[0] as any).type : 'video/webm' }));
+      });
+
+      const a = document.createElement('a');
+      const videoUrl = URL.createObjectURL(videoBlob);
+      a.href = videoUrl;
+      a.download = `pollinations-${Date.now()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(videoUrl);
+      URL.revokeObjectURL(objectUrl);
+
+      toast({ title: "تم", description: "تم إنشاء الفيديو وتحميله." });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "خطأ", description: "تعذر إنشاء الفيديو في هذا المتصفح." });
+    }
+  };
+
   const toggleMove = (id: string) => {
     setImages((prev) => prev.map((img) => (img.id === id ? { ...img, moving: !img.moving } : img)));
   };
@@ -180,6 +280,7 @@ const Index = () => {
                   <div className="absolute inset-x-0 bottom-0 p-3 flex items-center justify-center gap-2 bg-gradient-to-t from-background/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button size="sm" variant="secondary" onClick={() => toggleMove(img.id)}>{img.moving ? "إيقاف التحريك" : "تحريك"}</Button>
                     <Button size="sm" variant="outline" onClick={() => handleDownload(img.url)}>تحميل</Button>
+                    <Button size="sm" variant="outline" onClick={() => handleExportVideo(img.url)}>تحويل إلى فيديو</Button>
                   </div>
                 </div>
               </article>
