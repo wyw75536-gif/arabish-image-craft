@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +11,8 @@ const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/";
 const Index = () => {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<Array<{ id: string; url: string; moving: boolean }>>([]);
-  const [batch10, setBatch10] = useState(false);
+  const [images, setImages] = useState<Array<{ id: string; url: string; moving: boolean; style?: string }>>([]);
+  const [batch4Styles, setBatch4Styles] = useState(false);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,12 +71,34 @@ const Index = () => {
     try {
       const english = await translateToEnglish(desc);
       setLastPrompt(english);
-      const count = batch10 ? 10 : 1;
-      const urls = Array.from({ length: count }).map((_, i) => {
-        const seed = (i + 1).toString();
-        return { id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`), url: buildUrl(english, seed), moving: false };
-      });
-      setImages(urls);
+      
+      if (batch4Styles) {
+        const styles = [
+          { name: "واقعية", prompt: `${english}, realistic, photorealistic, high quality` },
+          { name: "أنمي", prompt: `${english}, anime style, manga style, japanese animation` },
+          { name: "كرتون ثلاثي الأبعاد", prompt: `${english}, 3D cartoon style, pixar style, animated movie` },
+          { name: "واقعية فائقة", prompt: `${english}, hyperrealistic, ultra realistic, professional photography, 8k` }
+        ];
+        
+        const urls = styles.map((style, i) => {
+          const seed = (Date.now() + i + Math.floor(Math.random() * 1000)).toString();
+          return { 
+            id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`), 
+            url: buildUrl(style.prompt, seed), 
+            moving: false,
+            style: style.name
+          };
+        });
+        setImages(urls);
+      } else {
+        const randomSeed = (Date.now() + Math.floor(Math.random() * 10000)).toString();
+        const urls = [{ 
+          id: (crypto?.randomUUID?.() || `${Date.now()}`), 
+          url: buildUrl(english, randomSeed), 
+          moving: false 
+        }];
+        setImages(urls);
+      }
     } catch (err) {
       console.error(err);
       toast({ title: "خطأ", description: "حدث خطأ أثناء التوليد. حاول مرة أخرى." });
@@ -88,12 +111,33 @@ const Index = () => {
     if (!lastPrompt) return;
     setLoading(true);
     try {
-      const count = batch10 ? 10 : 1;
-      const urls = Array.from({ length: count }).map((_, i) => {
-        const seed = (i + 1 + Math.floor(Math.random() * 1000)).toString();
-        return { id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`), url: buildUrl(`${lastPrompt} seed:${seed}`), moving: false };
-      });
-      setImages(urls);
+      if (batch4Styles) {
+        const styles = [
+          { name: "واقعية", prompt: `${lastPrompt}, realistic, photorealistic, high quality` },
+          { name: "أنمي", prompt: `${lastPrompt}, anime style, manga style, japanese animation` },
+          { name: "كرتون ثلاثي الأبعاد", prompt: `${lastPrompt}, 3D cartoon style, pixar style, animated movie` },
+          { name: "واقعية فائقة", prompt: `${lastPrompt}, hyperrealistic, ultra realistic, professional photography, 8k` }
+        ];
+        
+        const urls = styles.map((style, i) => {
+          const seed = (Date.now() + i + Math.floor(Math.random() * 1000)).toString();
+          return { 
+            id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`), 
+            url: buildUrl(style.prompt, seed), 
+            moving: false,
+            style: style.name
+          };
+        });
+        setImages(urls);
+      } else {
+        const randomSeed = (Date.now() + Math.floor(Math.random() * 10000)).toString();
+        const urls = [{ 
+          id: (crypto?.randomUUID?.() || `${Date.now()}`), 
+          url: buildUrl(lastPrompt, randomSeed), 
+          moving: false 
+        }];
+        setImages(urls);
+      }
     } catch (e) {
       toast({ title: "خطأ", description: "تعذر إعادة الإنشاء الآن." });
     } finally {
@@ -228,7 +272,7 @@ const Index = () => {
     <main className="min-h-screen bg-background">
       <header className="px-6 pt-16 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight">مولد صور Pollinations</h1>
-        <p className="mt-3 text-muted-foreground text-sm md:text-base">اكتب وصفك بالعربية، وسنترجمه ونعرض صورًا مبهرة. اختر صورة واحدة أو 10 صور بلمسة اختلاف.</p>
+        <p className="mt-3 text-muted-foreground text-sm md:text-base">اكتب وصفك بالعربية، وسنترجمه ونعرض صورًا مبهرة. اختر صورة واحدة أو 4 صور بأساليب مختلفة.</p>
       </header>
 
       <section className="container mx-auto px-4 max-w-4xl" dir="rtl">
@@ -247,8 +291,8 @@ const Index = () => {
             </div>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Switch id="batch" checked={batch10} onCheckedChange={setBatch10} />
-                <label htmlFor="batch" className="text-sm text-muted-foreground">توليد 10 صور مع اختلاف بسيط</label>
+                <Switch id="batch" checked={batch4Styles} onCheckedChange={setBatch4Styles} />
+                <label htmlFor="batch" className="text-sm text-muted-foreground">توليد 4 صور بأساليب مختلفة (واقعي، أنمي، 3D، واقعي فائق)</label>
               </div>
               <div className="flex items-center gap-3">
                 <Button variant="outline" onClick={handleRegenerate} disabled={!canRegenerate || loading}>إعادة الإنشاء</Button>
@@ -259,7 +303,7 @@ const Index = () => {
 
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
-            {Array.from({ length: batch10 ? 6 : 1 }).map((_, i) => (
+            {Array.from({ length: batch4Styles ? 4 : 1 }).map((_, i) => (
               <div key={i} className="h-64 rounded-lg bg-muted animate-pulse" />
             ))}
           </div>
@@ -277,6 +321,11 @@ const Index = () => {
                     className={`size-full object-cover transition-transform duration-500 ${img.moving ? 'animate-ken-burns' : 'group-hover:scale-105'}`}
                     onError={() => toast({ title: "خطأ", description: "تعذر تحميل الصورة. حاول وصفًا مختلفًا." })}
                   />
+                  {img.style && (
+                    <div className="absolute top-2 right-2 bg-background/80 text-foreground px-2 py-1 rounded text-xs">
+                      {img.style}
+                    </div>
+                  )}
                   <div className="absolute inset-x-0 bottom-0 p-3 flex items-center justify-center gap-2 bg-gradient-to-t from-background/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button size="sm" variant="secondary" onClick={() => toggleMove(img.id)}>{img.moving ? "إيقاف التحريك" : "تحريك"}</Button>
                     <Button size="sm" variant="outline" onClick={() => handleDownload(img.url)}>تحميل</Button>
