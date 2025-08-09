@@ -73,7 +73,7 @@ const Index = () => {
       const count = batch10 ? 10 : 1;
       const urls = Array.from({ length: count }).map((_, i) => {
         const seed = (i + 1).toString();
-        return { id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`), url: buildUrl(`${english} seed:${seed}`), moving: false };
+        return { id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`), url: buildUrl(english, seed), moving: false };
       });
       setImages(urls);
     } catch (err) {
