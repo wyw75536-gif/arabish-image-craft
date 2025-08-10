@@ -16,7 +16,7 @@ const Index = () => {
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "مولد صور Pollinations بالعربية";
+    document.title = "ARABISH IMAGE CRAFT — مولد صور بالذكاء الاصطناعي";
     const ensureMeta = (name: string, content: string) => {
       let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
       if (!el) {
@@ -213,17 +213,18 @@ const Index = () => {
         try { recorder!.stop(); } catch {}
       };
 
-      const start = performance.now();
-      recorder.start();
+      // نسجل بقطع 100ms لتحسين الميتاداتا في بعض المتصفحات
+      recorder.start(100);
 
-      // ضمان الإيقاف بعد المدة المطلوبة حتى لو تغيرت سرعة التحديث
-      const safety = window.setTimeout(stopRecording, duration + 200);
+      const totalFrames = Math.round((fps * duration) / 1000);
+      let frameIndex = 0;
+      const intervalMs = Math.max(4, Math.round(1000 / fps));
 
-      const intervalMs = Math.max(10, Math.round(1000 / fps));
+      // ضمان الإيقاف بعد المدة المطلوبة كحزام أمان
+      const safety = window.setTimeout(stopRecording, duration + 400);
+
       timer = window.setInterval(() => {
-        const now = performance.now();
-        const elapsed = now - start;
-        const t = Math.min(1, elapsed / duration);
+        const t = Math.min(1, frameIndex / Math.max(1, totalFrames - 1));
         const scale = 1 + 0.12 * t; // تكبير بسيط
         const panX = -0.2 * (width * (scale - 1));
         const panY = -0.2 * (height * (scale - 1));
@@ -251,10 +252,10 @@ const Index = () => {
         ctx.drawImage(imageEl, dx, dy, dw, dh);
         ctx.restore();
 
-        // دفع إطار صريحًا لبعض المتصفحات
         track?.requestFrame?.();
 
-        if (elapsed >= duration) {
+        frameIndex++;
+        if (frameIndex >= totalFrames) {
           window.clearTimeout(safety);
           stopRecording();
         }
@@ -290,7 +291,7 @@ const Index = () => {
   return (
     <main className="min-h-screen bg-background">
       <header className="px-6 pt-16 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tight">مولد صور Pollinations</h1>
+        <h1 className="text-3xl md:text-5xl font-bold tracking-tight">ARABISH IMAGE CRAFT</h1>
         <p className="mt-3 text-muted-foreground text-sm md:text-base">اكتب وصفك بالعربية، وسنترجمه ونعرض صورًا مبهرة. اختر صورة واحدة أو 4 صور بأساليب مختلفة.</p>
       </header>
 
