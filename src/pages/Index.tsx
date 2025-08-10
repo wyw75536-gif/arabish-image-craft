@@ -189,6 +189,7 @@ const Index = () => {
 
       // مسجل الفيديو من الـ canvas
       const stream = canvas.captureStream(fps);
+      const track = stream.getVideoTracks()[0] as any; // CanvasCaptureMediaStreamTrack في بعض المتصفحات
       const chunks: BlobPart[] = [];
       const tryOptions: MediaRecorderOptions[] = [
         { mimeType: 'video/webm;codecs=vp9' },
@@ -204,19 +205,23 @@ const Index = () => {
       recorder.ondataavailable = (e) => e.data?.size && chunks.push(e.data);
 
       let stopped = false;
+      let timer: number | null = null;
       const stopRecording = () => {
         if (stopped) return;
         stopped = true;
+        if (timer) { clearInterval(timer); timer = null; }
         try { recorder!.stop(); } catch {}
       };
 
       const start = performance.now();
-      recorder.start(100);
+      recorder.start();
 
       // ضمان الإيقاف بعد المدة المطلوبة حتى لو تغيرت سرعة التحديث
-      setTimeout(stopRecording, duration + 120);
+      const safety = window.setTimeout(stopRecording, duration + 200);
 
-      const drawFrame = (now: number) => {
+      const intervalMs = Math.max(10, Math.round(1000 / fps));
+      timer = window.setInterval(() => {
+        const now = performance.now();
         const elapsed = now - start;
         const t = Math.min(1, elapsed / duration);
         const scale = 1 + 0.12 * t; // تكبير بسيط
@@ -246,11 +251,14 @@ const Index = () => {
         ctx.drawImage(imageEl, dx, dy, dw, dh);
         ctx.restore();
 
-        if (!stopped) requestAnimationFrame(drawFrame);
-        if (t >= 1) stopRecording();
-      };
+        // دفع إطار صريحًا لبعض المتصفحات
+        track?.requestFrame?.();
 
-      requestAnimationFrame(drawFrame);
+        if (elapsed >= duration) {
+          window.clearTimeout(safety);
+          stopRecording();
+        }
+      }, intervalMs);
 
       const videoBlob: Blob = await new Promise((resolve) => {
         recorder!.onstop = () => resolve(new Blob(chunks, { type: chunks[0] ? (chunks[0] as any).type : 'video/webm' }));
