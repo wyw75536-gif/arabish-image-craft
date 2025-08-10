@@ -181,7 +181,7 @@ const Index = () => {
 
       const imageEl = await loadImage();
 
-      const width = 1280, height = 720, fps = 30, duration = 6000; // 6 ثوانٍ
+      const width = 1280, height = 720, fps = 30, duration = 6000; // 6 ثوانٍ ثابتة
       const canvas = document.createElement('canvas');
       canvas.width = width; canvas.height = height;
       const ctx = canvas.getContext('2d');
@@ -203,11 +203,22 @@ const Index = () => {
       if (!recorder) throw new Error('MediaRecorder-unsupported');
       recorder.ondataavailable = (e) => e.data?.size && chunks.push(e.data);
 
+      let stopped = false;
+      const stopRecording = () => {
+        if (stopped) return;
+        stopped = true;
+        try { recorder!.stop(); } catch {}
+      };
+
       const start = performance.now();
       recorder.start(100);
 
+      // ضمان الإيقاف بعد المدة المطلوبة حتى لو تغيرت سرعة التحديث
+      setTimeout(stopRecording, duration + 120);
+
       const drawFrame = (now: number) => {
-        const t = Math.min(1, (now - start) / duration);
+        const elapsed = now - start;
+        const t = Math.min(1, elapsed / duration);
         const scale = 1 + 0.12 * t; // تكبير بسيط
         const panX = -0.2 * (width * (scale - 1));
         const panY = -0.2 * (height * (scale - 1));
@@ -235,8 +246,8 @@ const Index = () => {
         ctx.drawImage(imageEl, dx, dy, dw, dh);
         ctx.restore();
 
-        if (t < 1) requestAnimationFrame(drawFrame);
-        else recorder!.stop();
+        if (!stopped) requestAnimationFrame(drawFrame);
+        if (t >= 1) stopRecording();
       };
 
       requestAnimationFrame(drawFrame);
