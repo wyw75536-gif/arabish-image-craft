@@ -147,18 +147,110 @@ const Index = () => {
 
   const handleDownload = async (url: string) => {
     try {
-      const res = await fetch(url);
+      // جلب الصورة ثم معالجة العلامة المائية قبل التنزيل
+      const res = await fetch(url, { mode: "cors" });
       const blob = await res.blob();
-      const a = document.createElement("a");
       const objectUrl = URL.createObjectURL(blob);
-      a.href = objectUrl;
-      a.download = `pollinations-${Date.now()}.png`;
+
+      // تحميل الصورة في عنصر Image لاستخدام أبعادها
+      const img: HTMLImageElement = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = (e) => reject(e);
+        image.src = objectUrl;
+      });
+
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no-2d-context");
+
+      // رسم الصورة الأصلية
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // تحديد مستطيل العلامة المائية أسفل يمين الصورة (نسبة تقريبية لتناسق أغلب الصور)
+      const pad = Math.round(Math.min(w, h) * 0.02);
+      const rectW = Math.round(Math.min(w * 0.38, 480));
+      const rectH = Math.round(Math.min(h * 0.12, 140));
+      const x = w - rectW - pad;
+      const y = h - rectH - pad;
+      const radius = Math.max(6, Math.round(Math.min(rectW, rectH) * 0.12));
+
+      // قصّ منطقة العلامة المائية ثم تمويهها بقوة
+      ctx.save();
+      const r = radius;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + rectW - r, y);
+      ctx.quadraticCurveTo(x + rectW, y, x + rectW, y + r);
+      ctx.lineTo(x + rectW, y + rectH - r);
+      ctx.quadraticCurveTo(x + rectW, y + rectH, x + rectW - r, y + rectH);
+      ctx.lineTo(x + r, y + rectH);
+      ctx.quadraticCurveTo(x, y + rectH, x, y + rectH - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+      ctx.clip();
+
+      // إعادة رسم الجزء ذاته بفلتر تمويه لمحو الشعار الأصلي
+      const expand = Math.round(Math.min(rectW, rectH) * 0.15);
+      const sx = Math.max(0, x - expand);
+      const sy = Math.max(0, y - expand);
+      const sw = Math.min(w - sx, rectW + expand * 2);
+      const sh = Math.min(h - sy, rectH + expand * 2);
+      ctx.filter = "blur(12px)";
+      ctx.drawImage(img, sx, sy, sw, sh, x - (sx - x), y - (sy - y), sw, sh);
+      ctx.filter = "none";
+
+      // خلفية نصف شفافة لضمان وضوح النص
+      ctx.globalAlpha = 0.65;
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(x, y, rectW, rectH);
+      ctx.globalAlpha = 1;
+
+      // كتابة اسم أداتنا بنفس حجم الصندوق تقريبًا
+      const label = "ARABISH IMAGE CRAFT";
+      let fontSize = Math.floor(rectH * 0.45);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#ffffff";
+      for (; fontSize > 10; fontSize--) {
+        ctx.font = `bold ${fontSize}px ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto`;
+        if (ctx.measureText(label).width <= rectW - pad * 1.5) break;
+      }
+      ctx.shadowColor = "rgba(0,0,0,0.35)";
+      ctx.shadowBlur = Math.max(2, Math.floor(fontSize * 0.1));
+      ctx.fillText(label, x + rectW / 2, y + rectH / 2);
+      ctx.restore();
+
+      // تصدير وتحميل
+      const outBlob: Blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b as Blob), "image/png", 0.95));
+      URL.revokeObjectURL(objectUrl);
+
+      const a = document.createElement("a");
+      const dlUrl = URL.createObjectURL(outBlob);
+      a.href = dlUrl;
+      a.download = `arabish-image-craft-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(objectUrl);
+      setTimeout(() => URL.revokeObjectURL(dlUrl), 0);
     } catch (e) {
-      toast({ title: "تنبيه", description: "تعذر تنزيل الصورة الآن." });
+      toast({ title: "تنبيه", description: "تعذر تجهيز الصورة، سيتم تحميل الأصل." });
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        const objectUrl = URL.createObjectURL(blob);
+        a.href = objectUrl;
+        a.download = `pollinations-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objectUrl);
+      } catch {}
     }
   };
 
@@ -346,29 +438,6 @@ const Index = () => {
                       {img.style}
                     </div>
                   )}
-
-                  {/* Overlay to blur watermark and show branding/developer credits */}
-                  <div className="absolute bottom-2 right-2 flex flex-col items-end gap-1 z-10">
-                    <div className="px-2 py-1 rounded bg-background/70 text-foreground backdrop-blur-3xl text-xs font-semibold">
-                      ARABISH IMAGE CRAFT
-                    </div>
-                    <div className="px-2 py-1 rounded bg-background/70 text-foreground backdrop-blur-3xl text-[10px] flex items-center gap-2">
-                      <span>تم تطوير هذه الاداه عن طريق محمد عاطف</span>
-                      <a
-                        href="https://www.facebook.com/profile.php?id=61575151770729"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 hover:underline underline-offset-2"
-                        aria-label="حساب المطور على فيسبوك"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-                          <path d="M22 12.06C22 6.48 17.52 2 11.94 2S2 6.48 2 12.06C2 17.08 5.66 21.18 10.44 22v-7.03H7.9v-2.91h2.54V9.83c0-2.5 1.49-3.88 3.77-3.88 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22C18.34 21.18 22 17.08 22 12.06z"/>
-                        </svg>
-                        <span>حساب المطور</span>
-                      </a>
-                    </div>
-                  </div>
-
                   <div className="absolute inset-x-0 bottom-0 p-3 flex items-center justify-center gap-2 bg-gradient-to-t from-background/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button size="sm" variant="secondary" onClick={() => toggleMove(img.id)}>{img.moving ? "إيقاف التحريك" : "تحريك"}</Button>
                     <Button size="sm" variant="outline" onClick={() => handleDownload(img.url)}>تحميل</Button>
@@ -380,6 +449,26 @@ const Index = () => {
           </div>
         )}
       </section>
+
+      <footer className="border-t mt-10">
+        <div className="container mx-auto px-4 py-6 text-center text-muted-foreground text-xs" dir="rtl">
+          <p className="flex items-center justify-center gap-2">
+            <span>تم تطوير هذه الاداه عن طريق محمد عاطف</span>
+            <a
+              href="https://www.facebook.com/profile.php?id=61575151770729"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 story-link"
+              aria-label="حساب المطور على فيسبوك"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                <path d="M22 12.06C22 6.48 17.52 2 11.94 2S2 6.48 2 12.06C2 17.08 5.66 21.18 10.44 22v-7.03H7.9v-2.91h2.54V9.83c0-2.5 1.49-3.88 3.77-3.88 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22C18.34 21.18 22 17.08 22 12.06z"/>
+              </svg>
+              <span>حساب المطور</span>
+            </a>
+          </p>
+        </div>
+      </footer>
     </main>
   );
 };
