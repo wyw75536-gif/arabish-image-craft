@@ -1,10 +1,11 @@
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { useImageHistory } from "@/hooks/useImageHistory";
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/";
 
@@ -14,6 +15,10 @@ const Index = () => {
   const [images, setImages] = useState<Array<{ id: string; url: string; moving: boolean; style?: string }>>([]);
   const [batch4Styles, setBatch4Styles] = useState(false);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
+  const [lastPromptAr, setLastPromptAr] = useState<string | null>(null);
+  const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
+  const { items: historyItems, add: addHistory, remove: removeHistory, clear: clearHistory } = useImageHistory();
+  const addedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     document.title = "ARABISH IMAGE CRAFT — مولد صور بالذكاء الاصطناعي";
@@ -68,6 +73,7 @@ const Index = () => {
       return;
     }
     setLoading(true);
+    setLastPromptAr(desc);
     try {
       const english = await translateToEnglish(desc);
       setLastPrompt(english);
@@ -90,6 +96,9 @@ const Index = () => {
           };
         });
         setImages(urls);
+        const map: Record<string, boolean> = {};
+        urls.forEach(u => { map[u.id] = true; });
+        setLoadingMap(map);
       } else {
         const randomSeed = (Date.now() + Math.floor(Math.random() * 10000)).toString();
         const urls = [{ 
@@ -98,6 +107,9 @@ const Index = () => {
           moving: false 
         }];
         setImages(urls);
+        const map: Record<string, boolean> = {};
+        urls.forEach(u => { map[u.id] = true; });
+        setLoadingMap(map);
       }
     } catch (err) {
       console.error(err);
@@ -428,14 +440,41 @@ const Index = () => {
                 <div className={`relative aspect-[4/3] overflow-hidden`}>
                   <img
                     src={img.url}
-                    alt="صورة مولدة بالذكاء الاصطناعي"
+                    alt={lastPromptAr ? `صورة مولدة: ${lastPromptAr}` : "صورة مولدة بالذكاء الاصطناعي"}
                     loading="lazy"
+                    decoding="async"
+                    fetchPriority="high"
                     className={`size-full object-cover transition-transform duration-500 ${img.moving ? 'animate-ken-burns' : 'group-hover:scale-105'}`}
+                    onLoad={() => {
+                      if (loadingMap[img.id]) {
+                        setLoadingMap((prev) => {
+                          const next = { ...prev } as Record<string, boolean>;
+                          delete next[img.id];
+                          return next;
+                        });
+                        if (!addedRef.current.has(img.id)) {
+                          addHistory({
+                            id: img.id,
+                            url: img.url,
+                            promptAr: lastPromptAr ?? description.trim(),
+                            promptEn: lastPrompt ?? undefined,
+                            style: img.style,
+                            createdAt: Date.now(),
+                          });
+                          addedRef.current.add(img.id);
+                        }
+                      }
+                    }}
                     onError={() => toast({ title: "خطأ", description: "تعذر تحميل الصورة. حاول وصفًا مختلفًا." })}
                   />
                   {img.style && (
                     <div className="absolute top-2 right-2 bg-background/80 text-foreground px-2 py-1 rounded text-xs">
                       {img.style}
+                    </div>
+                  )}
+                  {loadingMap[img.id] && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/40">
+                      <div className="h-10 w-10 rounded-full border-2 border-primary/70 border-t-transparent animate-spin" />
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 p-3 flex items-center justify-center gap-2 bg-gradient-to-t from-background/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
@@ -449,6 +488,34 @@ const Index = () => {
           </div>
         )}
       </section>
+
+      {historyItems.length > 0 && (
+        <section className="container mx-auto px-4 max-w-5xl mt-10" dir="rtl">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">صورك السابقة</h2>
+            <Button variant="outline" size="sm" onClick={clearHistory}>مسح السجل</Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {historyItems.map((it) => (
+              <article key={it.id} className="overflow-hidden rounded-lg border bg-card text-card-foreground">
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <img
+                    src={it.url}
+                    alt={it.promptAr ? `صورة محفوظة: ${it.promptAr}` : "صورة محفوظة"}
+                    loading="lazy"
+                    className="size-full object-cover"
+                    onError={() => {}}
+                  />
+                </div>
+                <div className="p-3 text-sm">
+                  <p className="line-clamp-2"><span className="text-muted-foreground">الوصف:</span> {it.promptAr}</p>
+                  {it.style && <p className="mt-1 text-muted-foreground">النمط: {it.style}</p>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <footer className="border-t mt-10">
         <div className="container mx-auto px-4 py-6 text-center text-muted-foreground text-xs" dir="rtl">
