@@ -14,13 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      generated_images: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          device_id: string
+          id: string
+          image_path: string
+          prompt_ar: string | null
+          prompt_en: string | null
+          style: string | null
+        }
+        Insert: {
+          bucket_id?: string
+          created_at?: string
+          device_id: string
+          id?: string
+          image_path: string
+          prompt_ar?: string | null
+          prompt_en?: string | null
+          style?: string | null
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          image_path?: string
+          prompt_ar?: string | null
+          prompt_en?: string | null
+          style?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      request_header: {
+        Args: { header_name: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
