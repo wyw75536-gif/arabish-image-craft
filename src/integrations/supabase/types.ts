@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string
+          device_id: string
+          enabled: boolean
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string | null
+          rate_limit_per_minute: number
+          total_calls: number
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          enabled?: boolean
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name?: string | null
+          rate_limit_per_minute?: number
+          total_calls?: number
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          enabled?: boolean
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string | null
+          rate_limit_per_minute?: number
+          total_calls?: number
+        }
+        Relationships: []
+      }
       generated_images: {
         Row: {
           bucket_id: string

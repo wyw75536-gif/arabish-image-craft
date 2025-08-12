@@ -20,6 +20,41 @@ const Index = () => {
   const { items: historyItems, add: addHistory, remove: removeHistory, clear: clearHistory } = useImageHistory();
   const addedRef = useRef<Set<string>>(new Set());
 
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [creatingKey, setCreatingKey] = useState(false);
+
+  const getDeviceId = () => {
+    let id = localStorage.getItem("device_id");
+    if (!id) {
+      id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+      localStorage.setItem("device_id", id);
+    }
+    return id;
+  };
+
+  const handleCreateApiKey = async () => {
+    try {
+      setCreatingKey(true);
+      const deviceId = getDeviceId();
+      const res = await fetch("https://jazqkngsgebefagibnia.supabase.co/functions/v1/create_api_key", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-device-id": deviceId,
+        },
+        body: JSON.stringify({ name: "Default" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "failed");
+      setApiKey(data.apiKey);
+      toast({ title: "تم", description: "تم إنشاء مفتاح API الخاص بك." });
+    } catch (e) {
+      toast({ title: "خطأ", description: "تعذر إنشاء المفتاح الآن." });
+    } finally {
+      setCreatingKey(false);
+    }
+  };
+
   useEffect(() => {
     document.title = "ARABISH IMAGE CRAFT — مولد صور بالذكاء الاصطناعي";
     const ensureMeta = (name: string, content: string) => {
@@ -422,6 +457,31 @@ const Index = () => {
                 <Button variant="outline" onClick={handleRegenerate} disabled={!canRegenerate || loading}>إعادة الإنشاء</Button>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardContent className="p-6 space-y-3">
+            <h2 className="text-lg font-semibold">واجهة API — مفاتيح واستعمال</h2>
+            <p className="text-sm text-muted-foreground">أنشئ مفتاح API لاستخدام المولد في موقعك. الصور الناتجة تحتوي على علامة ARABISH IMAGE CRAFT.</p>
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+              <Button onClick={handleCreateApiKey} disabled={creatingKey} variant="secondary" className="md:w-48">
+                {creatingKey ? "جارٍ الإنشاء..." : "إنشاء مفتاح API"}
+              </Button>
+              {apiKey && (
+                <Input readOnly value={apiKey} className="font-mono" onFocus={(e)=>e.currentTarget.select()} />
+              )}
+            </div>
+            {apiKey && (
+              <div className="text-xs text-muted-foreground">
+                مثال الاستعمال:
+                <pre className="mt-2 overflow-auto rounded-md bg-muted p-3"><code>{`fetch('https://jazqkngsgebefagibnia.supabase.co/functions/v1/generate_image', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${apiKey}' },
+  body: JSON.stringify({ prompt: 'a cat in Cairo at sunset' })
+}).then(r=>r.json()).then(d=>{ /* d.image هو base64 */ });`}</code></pre>
+              </div>
+            )}
           </CardContent>
         </Card>
 
