@@ -2,10 +2,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+// import { Switch } from "@/components/ui/switch"; // removed
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { useImageHistory } from "@/hooks/useImageHistory";
+import { StyleSelector, STYLES, SelectionMode } from "@/components/StyleSelector";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/";
 
@@ -13,12 +15,15 @@ const Index = () => {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<Array<{ id: string; url: string; moving: boolean; style?: string }>>([]);
-  const [batch4Styles, setBatch4Styles] = useState(false);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const [lastPromptAr, setLastPromptAr] = useState<string | null>(null);
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
   const { items: historyItems, add: addHistory, remove: removeHistory, clear: clearHistory } = useImageHistory();
   const addedRef = useRef<Set<string>>(new Set());
+
+  // أسلوب التحديد
+  const [mode, setMode] = useState<SelectionMode>("single");
+  const [selectedIds, setSelectedIds] = useState<string[]>([STYLES[0]?.id]);
 
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [creatingKey, setCreatingKey] = useState(false);
@@ -112,40 +117,26 @@ const Index = () => {
     try {
       const english = await translateToEnglish(desc);
       setLastPrompt(english);
-      
-      if (batch4Styles) {
-        const styles = [
-          { name: "واقعية", prompt: `${english}, realistic, photorealistic, high quality` },
-          { name: "أنمي", prompt: `${english}, anime style, manga style, japanese animation` },
-          { name: "كرتون ثلاثي الأبعاد", prompt: `${english}, 3D cartoon style, pixar style, animated movie` },
-          { name: "واقعية فائقة", prompt: `${english}, hyperrealistic, ultra realistic, professional photography, 8k` }
-        ];
-        
-        const urls = styles.map((style, i) => {
-          const seed = (Date.now() + i + Math.floor(Math.random() * 1000)).toString();
-          return { 
-            id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`), 
-            url: buildUrl(style.prompt, seed), 
-            moving: false,
-            style: style.name
-          };
-        });
-        setImages(urls);
-        const map: Record<string, boolean> = {};
-        urls.forEach(u => { map[u.id] = true; });
-        setLoadingMap(map);
-      } else {
-        const randomSeed = (Date.now() + Math.floor(Math.random() * 10000)).toString();
-        const urls = [{ 
-          id: (crypto?.randomUUID?.() || `${Date.now()}`), 
-          url: buildUrl(english, randomSeed), 
-          moving: false 
-        }];
-        setImages(urls);
-        const map: Record<string, boolean> = {};
-        urls.forEach(u => { map[u.id] = true; });
-        setLoadingMap(map);
-      }
+
+      // جهّز قائمة الأنماط المطلوبة (حتى 8)
+      const ids = (mode === 'multiple' ? (selectedIds.length ? selectedIds : [STYLES[0].id]) : [selectedIds[0] || STYLES[0].id]).slice(0, 8);
+      const selected = ids.map(id => STYLES.find(s => s.id === id)!).filter(Boolean);
+
+      const urls = selected.map((style, i) => {
+        const seed = (Date.now() + i + Math.floor(Math.random() * 1000)).toString();
+        const fullPrompt = `${english}, ${style.enSuffix}`;
+        return {
+          id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`),
+          url: buildUrl(fullPrompt, seed),
+          moving: false,
+          style: style.arName,
+        };
+      });
+
+      setImages(urls);
+      const map: Record<string, boolean> = {};
+      urls.forEach(u => { map[u.id] = true; });
+      setLoadingMap(map);
     } catch (err) {
       console.error(err);
       toast({ title: "خطأ", description: "حدث خطأ أثناء التوليد. حاول مرة أخرى." });
@@ -158,33 +149,20 @@ const Index = () => {
     if (!lastPrompt) return;
     setLoading(true);
     try {
-      if (batch4Styles) {
-        const styles = [
-          { name: "واقعية", prompt: `${lastPrompt}, realistic, photorealistic, high quality` },
-          { name: "أنمي", prompt: `${lastPrompt}, anime style, manga style, japanese animation` },
-          { name: "كرتون ثلاثي الأبعاد", prompt: `${lastPrompt}, 3D cartoon style, pixar style, animated movie` },
-          { name: "واقعية فائقة", prompt: `${lastPrompt}, hyperrealistic, ultra realistic, professional photography, 8k` }
-        ];
-        
-        const urls = styles.map((style, i) => {
-          const seed = (Date.now() + i + Math.floor(Math.random() * 1000)).toString();
-          return { 
-            id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`), 
-            url: buildUrl(style.prompt, seed), 
-            moving: false,
-            style: style.name
-          };
-        });
-        setImages(urls);
-      } else {
-        const randomSeed = (Date.now() + Math.floor(Math.random() * 10000)).toString();
-        const urls = [{ 
-          id: (crypto?.randomUUID?.() || `${Date.now()}`), 
-          url: buildUrl(lastPrompt, randomSeed), 
-          moving: false 
-        }];
-        setImages(urls);
-      }
+      const ids = (mode === 'multiple' ? (selectedIds.length ? selectedIds : [STYLES[0].id]) : [selectedIds[0] || STYLES[0].id]).slice(0, 8);
+      const selected = ids.map(id => STYLES.find(s => s.id === id)!).filter(Boolean);
+
+      const urls = selected.map((style, i) => {
+        const seed = (Date.now() + i + Math.floor(Math.random() * 1000)).toString();
+        const fullPrompt = `${lastPrompt}, ${style.enSuffix}`;
+        return {
+          id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`),
+          url: buildUrl(fullPrompt, seed),
+          moving: false,
+          style: style.arName,
+        };
+      });
+      setImages(urls);
     } catch (e) {
       toast({ title: "خطأ", description: "تعذر إعادة الإنشاء الآن." });
     } finally {
@@ -431,7 +409,7 @@ const Index = () => {
     <main className="min-h-screen bg-background">
       <header className="px-6 pt-16 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight">ARABISH IMAGE CRAFT</h1>
-        <p className="mt-3 text-muted-foreground text-sm md:text-base">اكتب وصفك بالعربية، وسنترجمه ونعرض صورًا مبهرة. اختر صورة واحدة أو 4 صور بأساليب مختلفة.</p>
+        <p className="mt-3 text-muted-foreground text-sm md:text-base">اكتب وصفك بالعربية وسنترجمه. اختر صورة واحدة أو حتى 8 صور بأساليب مختلفة في آنٍ واحد.</p>
       </header>
 
       <section className="container mx-auto px-4 max-w-4xl" dir="rtl">
@@ -448,14 +426,32 @@ const Index = () => {
                 {loading ? "جارٍ التوليد..." : "اعرض الصورة"}
               </Button>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Switch id="batch" checked={batch4Styles} onCheckedChange={setBatch4Styles} />
-                <label htmlFor="batch" className="text-sm text-muted-foreground">توليد 4 صور بأساليب مختلفة (واقعي، أنمي، 3D، واقعي فائق)</label>
-              </div>
-              <div className="flex items-center gap-3">
+            <div className="space-y-3">
+              <StyleSelector
+                mode={mode}
+                onModeChange={setMode}
+                selectedIds={selectedIds}
+                onChange={setSelectedIds}
+                maxMulti={8}
+              />
+              <div className="flex items-center justify-end">
                 <Button variant="outline" onClick={handleRegenerate} disabled={!canRegenerate || loading}>إعادة الإنشاء</Button>
               </div>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="guide">
+                  <AccordionTrigger>دليل الاستايلات وكيفية تأثيرها</AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                      {STYLES.map(s => (
+                        <li key={s.id} className="p-2 rounded border">
+                          <div className="font-medium">{s.arName}</div>
+                          <div className="text-xs mt-1">{s.description}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           </CardContent>
         </Card>
@@ -487,7 +483,7 @@ const Index = () => {
 
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
-            {Array.from({ length: batch4Styles ? 4 : 1 }).map((_, i) => (
+            {Array.from({ length: mode === 'multiple' ? Math.min(selectedIds.length || 1, 8) : 1 }).map((_, i) => (
               <div key={i} className="h-64 rounded-lg bg-muted animate-pulse" />
             ))}
           </div>

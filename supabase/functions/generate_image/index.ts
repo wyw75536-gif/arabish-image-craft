@@ -38,7 +38,7 @@ async function watermark(imageData: Uint8Array): Promise<Uint8Array> {
 
   // Render text
   const label = "ARABISH IMAGE CRAFT";
-  const fontUrl = "https://raw.githubusercontent.com/google/fonts/main/apache/roboto/Roboto-Bold.ttf";
+  const fontUrl = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/master/ttf/DejaVuSans-Bold.ttf";
   const fontData = new Uint8Array(await (await fetch(fontUrl)).arrayBuffer());
 
   // Try to fit text
