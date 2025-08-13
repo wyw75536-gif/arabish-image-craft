@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { useImageHistory } from "@/hooks/useImageHistory";
 import { StyleSelector, STYLES, SelectionMode } from "@/components/StyleSelector";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/";
 
@@ -25,40 +25,6 @@ const Index = () => {
   const [mode, setMode] = useState<SelectionMode>("single");
   const [selectedIds, setSelectedIds] = useState<string[]>([STYLES[0]?.id]);
 
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [creatingKey, setCreatingKey] = useState(false);
-
-  const getDeviceId = () => {
-    let id = localStorage.getItem("device_id");
-    if (!id) {
-      id = crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
-      localStorage.setItem("device_id", id);
-    }
-    return id;
-  };
-
-  const handleCreateApiKey = async () => {
-    try {
-      setCreatingKey(true);
-      const deviceId = getDeviceId();
-      const res = await fetch("https://jazqkngsgebefagibnia.supabase.co/functions/v1/create_api_key", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-device-id": deviceId,
-        },
-        body: JSON.stringify({ name: "Default" }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "failed");
-      setApiKey(data.apiKey);
-      toast({ title: "تم", description: "تم إنشاء مفتاح API الخاص بك." });
-    } catch (e) {
-      toast({ title: "خطأ", description: "تعذر إنشاء المفتاح الآن." });
-    } finally {
-      setCreatingKey(false);
-    }
-  };
 
   useEffect(() => {
     document.title = "ARABISH IMAGE CRAFT — مولد صور بالذكاء الاصطناعي";
@@ -437,49 +403,10 @@ const Index = () => {
               <div className="flex items-center justify-end">
                 <Button variant="outline" onClick={handleRegenerate} disabled={!canRegenerate || loading}>إعادة الإنشاء</Button>
               </div>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="guide">
-                  <AccordionTrigger>دليل الاستايلات وكيفية تأثيرها</AccordionTrigger>
-                  <AccordionContent>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                      {STYLES.map(s => (
-                        <li key={s.id} className="p-2 rounded border">
-                          <div className="font-medium">{s.arName}</div>
-                          <div className="text-xs mt-1">{s.description}</div>
-                        </li>
-                      ))}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="mb-6">
-          <CardContent className="p-6 space-y-3">
-            <h2 className="text-lg font-semibold">واجهة API — مفاتيح واستعمال</h2>
-            <p className="text-sm text-muted-foreground">أنشئ مفتاح API لاستخدام المولد في موقعك. الصور الناتجة تحتوي على علامة ARABISH IMAGE CRAFT.</p>
-            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-              <Button onClick={handleCreateApiKey} disabled={creatingKey} variant="secondary" className="md:w-48">
-                {creatingKey ? "جارٍ الإنشاء..." : "إنشاء مفتاح API"}
-              </Button>
-              {apiKey && (
-                <Input readOnly value={apiKey} className="font-mono" onFocus={(e)=>e.currentTarget.select()} />
-              )}
-            </div>
-            {apiKey && (
-              <div className="text-xs text-muted-foreground">
-                مثال الاستعمال:
-                <pre className="mt-2 overflow-auto rounded-md bg-muted p-3"><code>{`fetch('https://jazqkngsgebefagibnia.supabase.co/functions/v1/generate_image', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${apiKey}' },
-  body: JSON.stringify({ prompt: 'a cat in Cairo at sunset' })
-}).then(r=>r.json()).then(d=>{ /* d.image هو base64 */ });`}</code></pre>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
@@ -499,7 +426,7 @@ const Index = () => {
                     alt={lastPromptAr ? `صورة مولدة: ${lastPromptAr}` : "صورة مولدة بالذكاء الاصطناعي"}
                     loading="lazy"
                     decoding="async"
-                    fetchPriority="high"
+                    
                     className={`size-full object-cover transition-transform duration-500 ${img.moving ? 'animate-ken-burns' : 'group-hover:scale-105'}`}
                     onLoad={() => {
                       if (loadingMap[img.id]) {
@@ -521,7 +448,17 @@ const Index = () => {
                         }
                       }
                     }}
-                    onError={() => toast({ title: "خطأ", description: "تعذر تحميل الصورة. حاول وصفًا مختلفًا." })}
+                    onError={(e) => {
+                      const el = e.currentTarget as HTMLImageElement;
+                      const tried = el.getAttribute('data-retried');
+                      if (!tried) {
+                        el.setAttribute('data-retried', '1');
+                        const sep = img.url.includes('?') ? '&' : '?';
+                        el.src = `${img.url}${sep}cb=${Date.now()}`;
+                        return;
+                      }
+                      toast({ title: "خطأ", description: "تعذر تحميل الصورة الآن. أعد المحاولة بعد ثوانٍ." });
+                    }}
                   />
                   {img.style && (
                     <div className="absolute top-2 right-2 bg-background/80 text-foreground px-2 py-1 rounded text-xs">
