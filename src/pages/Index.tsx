@@ -503,6 +503,33 @@ const Index = () => {
                 <div className="p-3 text-sm">
                   <p className="line-clamp-2"><span className="text-muted-foreground">الوصف:</span> {it.promptAr}</p>
                   {it.style && <p className="mt-1 text-muted-foreground">النمط: {it.style}</p>}
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(it.createdAt).toLocaleDateString('ar-EG', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </span>
+                    <div className="flex gap-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleDownload(it.url)}
+                        className="h-7 text-xs"
+                      >
+                        تحميل
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => removeHistory(it.id)}
+                        className="h-7 text-xs text-destructive hover:text-destructive"
+                      >
+                        حذف
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </article>
             ))}
