@@ -60,8 +60,13 @@ export const PWAInstall = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      // إذا كان متاح البرومبت المحفوظ
+    if (!deferredPrompt) {
+      // إذا لم يكن البرومبت متاحاً، لا نفعل شيء
+      setShowInstallModal(false);
+      return;
+    }
+
+    try {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       
@@ -71,29 +76,15 @@ export const PWAInstall = () => {
       }
       
       setDeferredPrompt(null);
-    } else {
-      // إرشادات يدوية للتثبيت
-      let instructions = '';
-      const userAgent = navigator.userAgent.toLowerCase();
-      
-      if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
-        instructions = 'في متصفح Chrome: اضغط على القائمة (⋮) ← "تثبيت التطبيق"';
-      } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
-        instructions = 'في متصفح Safari: اضغط على زر المشاركة ← "إضافة إلى الشاشة الرئيسية"';
-      } else if (userAgent.includes('firefox')) {
-        instructions = 'في متصفح Firefox: اضغط على القائمة ← "تثبيت"';
-      } else {
-        instructions = 'يمكنك تثبيت التطبيق من قائمة المتصفح';
-      }
-      
-      alert(instructions);
+    } catch (error) {
+      console.error('Error installing PWA:', error);
     }
     
     setShowInstallModal(false);
   };
 
-  // إخفاء الزر إذا كان التطبيق مثبت بالفعل
-  if (isAlreadyInstalled) return null;
+  // إخفاء الزر إذا كان التطبيق مثبت بالفعل أو إذا لم يكن التثبيت التلقائي متاحاً
+  if (isAlreadyInstalled || !deferredPrompt) return null;
 
   return (
     <>
