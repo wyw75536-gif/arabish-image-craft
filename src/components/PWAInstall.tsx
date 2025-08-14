@@ -15,24 +15,14 @@ interface BeforeInstallPromptEvent extends Event {
 export const PWAInstall = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
-  const [isInstallable, setIsInstallable] = useState(true); // اظهار الزر دائماً
   const [isAlreadyInstalled, setIsAlreadyInstalled] = useState(false);
 
   useEffect(() => {
     // فحص ما إذا كان التطبيق مثبت بالفعل
     const checkIfInstalled = () => {
-      // فحص طريقة العرض
-      if (window.matchMedia('(display-mode: standalone)').matches) {
+      if (window.matchMedia('(display-mode: standalone)').matches || 
+          ('standalone' in window.navigator && (window.navigator as any).standalone)) {
         setIsAlreadyInstalled(true);
-        setIsInstallable(false);
-        return;
-      }
-      
-      // فحص navigator.standalone لسفاري
-      if ('standalone' in window.navigator && (window.navigator as any).standalone) {
-        setIsAlreadyInstalled(true);
-        setIsInstallable(false);
-        return;
       }
     };
 
@@ -41,12 +31,10 @@ export const PWAInstall = () => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
     };
 
     const handleAppInstalled = () => {
       setIsAlreadyInstalled(true);
-      setIsInstallable(false);
       setDeferredPrompt(null);
     };
 
@@ -60,31 +48,26 @@ export const PWAInstall = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      // إذا لم يكن البرومبت متاحاً، لا نفعل شيء
-      setShowInstallModal(false);
-      return;
-    }
-
-    try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        setIsInstallable(false);
-        setIsAlreadyInstalled(true);
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          setIsAlreadyInstalled(true);
+        }
+        
+        setDeferredPrompt(null);
+      } catch (error) {
+        console.error('Error installing PWA:', error);
       }
-      
-      setDeferredPrompt(null);
-    } catch (error) {
-      console.error('Error installing PWA:', error);
     }
     
     setShowInstallModal(false);
   };
 
-  // إخفاء الزر إذا كان التطبيق مثبت بالفعل أو إذا لم يكن التثبيت التلقائي متاحاً
-  if (isAlreadyInstalled || !deferredPrompt) return null;
+  // إخفاء الزر فقط إذا كان التطبيق مثبت بالفعل
+  if (isAlreadyInstalled) return null;
 
   return (
     <>
