@@ -15,9 +15,29 @@ interface BeforeInstallPromptEvent extends Event {
 export const PWAInstall = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstallable, setIsInstallable] = useState(true); // اظهار الزر دائماً
+  const [isAlreadyInstalled, setIsAlreadyInstalled] = useState(false);
 
   useEffect(() => {
+    // فحص ما إذا كان التطبيق مثبت بالفعل
+    const checkIfInstalled = () => {
+      // فحص طريقة العرض
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        setIsAlreadyInstalled(true);
+        setIsInstallable(false);
+        return;
+      }
+      
+      // فحص navigator.standalone لسفاري
+      if ('standalone' in window.navigator && (window.navigator as any).standalone) {
+        setIsAlreadyInstalled(true);
+        setIsInstallable(false);
+        return;
+      }
+    };
+
+    checkIfInstalled();
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -25,6 +45,7 @@ export const PWAInstall = () => {
     };
 
     const handleAppInstalled = () => {
+      setIsAlreadyInstalled(true);
       setIsInstallable(false);
       setDeferredPrompt(null);
     };
@@ -39,20 +60,40 @@ export const PWAInstall = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setIsInstallable(false);
+    if (deferredPrompt) {
+      // إذا كان متاح البرومبت المحفوظ
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        setIsInstallable(false);
+        setIsAlreadyInstalled(true);
+      }
+      
+      setDeferredPrompt(null);
+    } else {
+      // إرشادات يدوية للتثبيت
+      let instructions = '';
+      const userAgent = navigator.userAgent.toLowerCase();
+      
+      if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+        instructions = 'في متصفح Chrome: اضغط على القائمة (⋮) ← "تثبيت التطبيق"';
+      } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
+        instructions = 'في متصفح Safari: اضغط على زر المشاركة ← "إضافة إلى الشاشة الرئيسية"';
+      } else if (userAgent.includes('firefox')) {
+        instructions = 'في متصفح Firefox: اضغط على القائمة ← "تثبيت"';
+      } else {
+        instructions = 'يمكنك تثبيت التطبيق من قائمة المتصفح';
+      }
+      
+      alert(instructions);
     }
     
-    setDeferredPrompt(null);
     setShowInstallModal(false);
   };
 
-  if (!isInstallable) return null;
+  // إخفاء الزر إذا كان التطبيق مثبت بالفعل
+  if (isAlreadyInstalled) return null;
 
   return (
     <>
