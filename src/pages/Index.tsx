@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { useImageHistory } from "@/hooks/useImageHistory";
 import { StyleSelector, STYLES, SelectionMode } from "@/components/StyleSelector";
+import { PWAInstall } from "@/components/PWAInstall";
 
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/";
@@ -373,6 +374,7 @@ const Index = () => {
 
   return (
     <main className="min-h-screen bg-background">
+      <PWAInstall />
       <header className="px-6 pt-16 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight">ARABISH IMAGE CRAFT</h1>
         <p className="mt-3 text-muted-foreground text-sm md:text-base">اكتب وصفك بالعربية وسنترجمه. اختر صورة واحدة أو حتى 8 صور بأساليب مختلفة في آنٍ واحد.</p>
