@@ -386,20 +386,18 @@ const Index = () => {
       
       {/* Header with controls */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-center">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold">{t("site.title")}</h1>
-          </div>
-          <div className="flex items-center gap-2">
             <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      <div className="px-6 pt-8 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
+      <header className="px-6 pt-16 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
+        <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{t("site.title")}</h1>
         <p className="mt-3 text-muted-foreground text-sm md:text-base">{t("site.subtitle")}</p>
-      </div>
+      </header>
 
       <section className={`container mx-auto px-4 max-w-4xl ${language === "ar" ? "dir-rtl" : "dir-ltr"}`} dir={language === "ar" ? "rtl" : "ltr"}>
         <Card className="mb-6">
