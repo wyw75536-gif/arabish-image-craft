@@ -2,17 +2,22 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { Switch } from "@/components/ui/switch"; // removed
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { useImageHistory } from "@/hooks/useImageHistory";
 import { StyleSelector, STYLES, SelectionMode } from "@/components/StyleSelector";
 import { PWAInstall } from "@/components/PWAInstall";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { ShareButton } from "@/components/ShareButton";
+import { useLanguage } from "@/context/LanguageContext";
+import { Download, VideoIcon, Trash2 } from "lucide-react";
 
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/";
 
 const Index = () => {
+  const { language, t } = useLanguage();
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<Array<{ id: string; url: string; moving: boolean; style?: string }>>([]);
@@ -28,7 +33,10 @@ const Index = () => {
 
 
   useEffect(() => {
-    document.title = "ARABISH IMAGE CRAFT — مولد صور بالذكاء الاصطناعي";
+    document.title = t("site.title") + " — " + t("site.subtitle");
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+    document.documentElement.lang = language;
+    
     const ensureMeta = (name: string, content: string) => {
       let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
       if (!el) {
@@ -38,7 +46,7 @@ const Index = () => {
       }
       el.setAttribute("content", content);
     };
-    ensureMeta("description", "مولد صور بالذكاء الاصطناعي يدعم العربية مع ترجمة فورية وخيارات توليد متعددة.");
+    ensureMeta("description", t("site.subtitle"));
 
     // Canonical
     let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
@@ -48,7 +56,7 @@ const Index = () => {
       document.head.appendChild(link);
     }
     link.setAttribute("href", window.location.href);
-  }, []);
+  }, [language, t]);
 
   const translateToEnglish = async (text: string): Promise<string> => {
     try {
@@ -76,7 +84,7 @@ const Index = () => {
     const desc = description.trim();
     setImages([]);
     if (!desc) {
-      toast({ title: "تنبيه", description: "من فضلك اكتب وصفًا للصورة." });
+      toast({ title: t("toast.empty") });
       return;
     }
     setLoading(true);
@@ -106,7 +114,7 @@ const Index = () => {
       setLoadingMap(map);
     } catch (err) {
       console.error(err);
-      toast({ title: "خطأ", description: "حدث خطأ أثناء التوليد. حاول مرة أخرى." });
+      toast({ title: t("toast.error") });
     } finally {
       setLoading(false);
     }
@@ -131,7 +139,7 @@ const Index = () => {
       });
       setImages(urls);
     } catch (e) {
-      toast({ title: "خطأ", description: "تعذر إعادة الإنشاء الآن." });
+      toast({ title: t("toast.error") });
     } finally {
       setLoading(false);
     }
@@ -375,23 +383,36 @@ const Index = () => {
   return (
     <main className="min-h-screen bg-background">
       <PWAInstall />
-      <header className="px-6 pt-16 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tight">ARABISH IMAGE CRAFT</h1>
-        <p className="mt-3 text-muted-foreground text-sm md:text-base">اكتب وصفك بالعربية وسنترجمه. اختر صورة واحدة أو حتى 8 صور بأساليب مختلفة في آنٍ واحد.</p>
+      
+      {/* Header with controls */}
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold">{t("site.title")}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
+        </div>
       </header>
 
-      <section className="container mx-auto px-4 max-w-4xl" dir="rtl">
+      <div className="px-6 pt-8 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
+        <p className="mt-3 text-muted-foreground text-sm md:text-base">{t("site.subtitle")}</p>
+      </div>
+
+      <section className={`container mx-auto px-4 max-w-4xl ${language === "ar" ? "dir-rtl" : "dir-ltr"}`} dir={language === "ar" ? "rtl" : "ltr"}>
         <Card className="mb-6">
           <CardContent className="p-6 space-y-4">
             <div className="flex flex-col md:flex-row items-stretch gap-3">
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="مثال: كلب يمشي في حديقة عند الغروب بعدسة احترافية"
+                placeholder={t("input.placeholder")}
                 className="flex-1"
               />
               <Button variant="hero" onClick={handleGenerate} disabled={loading} className="md:w-48">
-                {loading ? "جارٍ التوليد..." : "اعرض الصورة"}
+                {loading ? t("button.generating") : t("button.generate")}
               </Button>
             </div>
             <div className="space-y-3">
@@ -403,7 +424,7 @@ const Index = () => {
                 maxMulti={8}
               />
               <div className="flex items-center justify-end">
-                <Button variant="outline" onClick={handleRegenerate} disabled={!canRegenerate || loading}>إعادة الإنشاء</Button>
+                <Button variant="outline" onClick={handleRegenerate} disabled={!canRegenerate || loading}>{t("button.regenerate")}</Button>
               </div>
             </div>
           </CardContent>
@@ -425,7 +446,7 @@ const Index = () => {
                 <div className={`relative aspect-[4/3] overflow-hidden`}>
                   <img
                     src={img.url}
-                    alt={lastPromptAr ? `صورة مولدة: ${lastPromptAr}` : "صورة مولدة بالذكاء الاصطناعي"}
+                    alt={lastPromptAr ? `${t("site.title")}: ${lastPromptAr}` : t("site.title")}
                     loading="lazy"
                     decoding="async"
                     
@@ -472,89 +493,82 @@ const Index = () => {
                       <div className="h-10 w-10 rounded-full border-2 border-primary/70 border-t-transparent animate-spin" />
                     </div>
                   )}
-                  <div className="absolute inset-x-0 bottom-0 p-3 flex items-center justify-center gap-2 bg-gradient-to-t from-background/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button size="sm" variant="secondary" onClick={() => toggleMove(img.id)}>{img.moving ? "إيقاف التحريك" : "تحريك"}</Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDownload(img.url)}>تحميل</Button>
-                    <Button size="sm" variant="outline" onClick={() => handleExportVideo(img.url)}>تحويل إلى فيديو</Button>
+                  <div className="flex flex-wrap gap-2 p-3">
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleDownload(img.url)}
+                      className="flex items-center gap-1.5 bg-background/90 text-foreground hover:bg-background border border-border/50"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {t("button.download")}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleExportVideo(img.url)}
+                      className="flex items-center gap-1.5"
+                    >
+                      <VideoIcon className="h-3.5 w-3.5" />
+                      {t("button.video")}
+                    </Button>
+                    <ShareButton 
+                      imageUrl={img.url} 
+                      description={lastPromptAr || t("site.subtitle")} 
+                    />
                   </div>
                 </div>
               </article>
             ))}
           </div>
         )}
+
+        {historyItems.length > 0 && (
+          <Card className="mt-8">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">{t("history.title")}</h2>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={clearHistory}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  {t("history.clear")}
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {historyItems.slice(0, 8).map((item) => (
+                  <div key={item.id} className="relative group">
+                    <img
+                      src={item.url}
+                      alt={item.promptAr}
+                      className="w-full h-24 object-cover rounded-lg"
+                      loading="lazy"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeHistory(item.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              {historyItems.length === 0 && (
+                <p className="text-center text-muted-foreground py-8">{t("history.empty")}</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </section>
 
-      {historyItems.length > 0 && (
-        <section className="container mx-auto px-4 max-w-5xl mt-10" dir="rtl">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">صورك السابقة</h2>
-            <Button variant="outline" size="sm" onClick={clearHistory}>مسح السجل</Button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {historyItems.map((it) => (
-              <article key={it.id} className="overflow-hidden rounded-lg border bg-card text-card-foreground">
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img
-                    src={it.url}
-                    alt={it.promptAr ? `صورة محفوظة: ${it.promptAr}` : "صورة محفوظة"}
-                    loading="lazy"
-                    className="size-full object-cover"
-                    onError={() => {}}
-                  />
-                </div>
-                <div className="p-3 text-sm">
-                  <p className="line-clamp-2"><span className="text-muted-foreground">الوصف:</span> {it.promptAr}</p>
-                  {it.style && <p className="mt-1 text-muted-foreground">النمط: {it.style}</p>}
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(it.createdAt).toLocaleDateString('ar-EG', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </span>
-                    <div className="flex gap-1">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => handleDownload(it.url)}
-                        className="h-7 text-xs"
-                      >
-                        تحميل
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => removeHistory(it.id)}
-                        className="h-7 text-xs text-destructive hover:text-destructive"
-                      >
-                        حذف
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <footer className="border-t mt-10">
-        <div className="container mx-auto px-4 py-6 text-center text-muted-foreground text-xs" dir="rtl">
-          <p className="flex items-center justify-center gap-2">
-            <span>تم تطوير هذه الاداه عن طريق محمد عاطف</span>
-            <a
-              href="https://www.facebook.com/profile.php?id=61575151770729"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 story-link"
-              aria-label="حساب المطور على فيسبوك"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-                <path d="M22 12.06C22 6.48 17.52 2 11.94 2S2 6.48 2 12.06C2 17.08 5.66 21.18 10.44 22v-7.03H7.9v-2.91h2.54V9.83c0-2.5 1.49-3.88 3.77-3.88 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22C18.34 21.18 22 17.08 22 12.06z"/>
-              </svg>
-              <span>حساب المطور</span>
-            </a>
+      <footer className="mt-16 py-8 border-t bg-muted/50">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>
+            {t("footer.developer")} <span className="text-primary font-medium">المطور العربي</span> {t("footer.with")} ❤️
           </p>
         </div>
       </footer>
