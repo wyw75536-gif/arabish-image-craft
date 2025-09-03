@@ -48,7 +48,14 @@ const translations = {
     
     // PWA
     "pwa.install": "احصل علي التطبيق",
-    "pwa.download": "حمّله الآن"
+    "pwa.download": "حمّله الآن",
+    
+    // Additional messages
+    "toast.download.warning": "تنبيه",
+    "toast.download.fallback": "تعذر تجهيز الصورة، سيتم تحميل الأصل.",
+    "toast.image.error": "خطأ",
+    "toast.image.load.error": "تعذر تحميل الصورة الآن. أعد المحاولة بعد ثوانٍ.",
+    "toast.done": "تم"
   },
   en: {
     // Header
@@ -89,7 +96,14 @@ const translations = {
     
     // PWA
     "pwa.install": "Get App",
-    "pwa.download": "Download Now"
+    "pwa.download": "Download Now",
+    
+    // Additional messages
+    "toast.download.warning": "Warning",
+    "toast.download.fallback": "Could not process image, downloading original.",
+    "toast.image.error": "Error",
+    "toast.image.load.error": "Could not load image now. Try again in few seconds.",
+    "toast.done": "Done"
   }
 };
 

@@ -238,7 +238,7 @@ const Index = () => {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(dlUrl), 0);
     } catch (e) {
-      toast({ title: "تنبيه", description: "تعذر تجهيز الصورة، سيتم تحميل الأصل." });
+      toast({ title: t("toast.download.warning"), description: t("toast.download.fallback") });
       try {
         const res = await fetch(url);
         const blob = await res.blob();
@@ -256,7 +256,7 @@ const Index = () => {
 
   const handleExportVideo = async (url: string) => {
     try {
-      toast({ title: "جارٍ إنشاء فيديو", description: "قد يستغرق بضع ثوانٍ..." });
+      toast({ title: t("toast.video.creating"), description: t("toast.video.wait") });
 
       // جلب الصورة كـ Blob لتجنب مشاكل CORS على الـ canvas
       const res = await fetch(url);
@@ -367,10 +367,10 @@ const Index = () => {
       URL.revokeObjectURL(videoUrl);
       URL.revokeObjectURL(objectUrl);
 
-      toast({ title: "تم", description: "تم إنشاء الفيديو وتحميله." });
+      toast({ title: t("toast.done"), description: t("toast.video.success") });
     } catch (e) {
       console.error(e);
-      toast({ title: "خطأ", description: "تعذر إنشاء الفيديو في هذا المتصفح." });
+      toast({ title: t("toast.image.error"), description: t("toast.video.error") });
     }
   };
 
@@ -478,7 +478,7 @@ const Index = () => {
                         el.src = `${img.url}${sep}cb=${Date.now()}`;
                         return;
                       }
-                      toast({ title: "خطأ", description: "تعذر تحميل الصورة الآن. أعد المحاولة بعد ثوانٍ." });
+                      toast({ title: t("toast.image.error"), description: t("toast.image.load.error") });
                     }}
                   />
                   {img.style && (
@@ -491,7 +491,7 @@ const Index = () => {
                       <div className="h-10 w-10 rounded-full border-2 border-primary/70 border-t-transparent animate-spin" />
                     </div>
                   )}
-                  <div className="flex flex-wrap gap-2 p-3">
+                  <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-2">
                     <Button 
                       size="sm" 
                       onClick={() => handleDownload(img.url)}
