@@ -134,7 +134,7 @@ const Index = () => {
           id: (crypto?.randomUUID?.() || `${Date.now()}-${i}`),
           url: buildUrl(fullPrompt, seed),
           moving: false,
-          style: style.arName,
+          style: language === "ar" ? style.arName : style.enName,
         };
       });
       setImages(urls);
@@ -462,7 +462,7 @@ const Index = () => {
                             url: img.url,
                             promptAr: lastPromptAr ?? description.trim(),
                             promptEn: lastPrompt ?? undefined,
-                            style: img.style,
+                            style: language === "ar" ? img.style : STYLES.find(s => s.arName === img.style)?.enName || img.style,
                             createdAt: Date.now(),
                           });
                           addedRef.current.add(img.id);
@@ -535,23 +535,42 @@ const Index = () => {
                   {t("history.clear")}
                 </Button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {historyItems.slice(0, 8).map((item) => (
-                  <div key={item.id} className="relative group">
-                    <img
-                      src={item.url}
-                      alt={item.promptAr}
-                      className="w-full h-24 object-cover rounded-lg"
-                      loading="lazy"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeHistory(item.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {historyItems.slice(0, 12).map((item) => (
+                  <div key={item.id} className="relative group rounded-lg border bg-card overflow-hidden">
+                    <div className="aspect-[4/3] relative">
+                      <img
+                        src={item.url}
+                        alt={item.promptAr}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeHistory(item.id)}
+                          className="text-destructive hover:text-destructive bg-background/90"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleDownload(item.url)}
+                          className="w-full flex items-center gap-1.5 bg-background/90 text-foreground hover:bg-background border border-border/50"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {t("button.download")}
+                        </Button>
+                      </div>
+                    </div>
+                    {item.style && (
+                      <div className="p-2">
+                        <p className="text-xs text-muted-foreground truncate">{item.style}</p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
