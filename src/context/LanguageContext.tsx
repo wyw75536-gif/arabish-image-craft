@@ -43,8 +43,10 @@ const translations = {
     "history.empty": "لا توجد صور محفوظة بعد",
     
     // Footer
-    "footer.developer": "طور بواسطة",
-    "footer.with": "بـ",
+    "footer.developer": "تم تطوير هذه الاداه عن طريق",
+    "footer.developer.name": "محمد عاطف",
+    "footer.developer.account": "حساب المطور",
+    "footer.with": "❤️",
     
     // PWA
     "pwa.install": "احصل علي التطبيق",
@@ -91,8 +93,10 @@ const translations = {
     "history.empty": "No saved images yet",
     
     // Footer
-    "footer.developer": "Developed by",
-    "footer.with": "with",
+    "footer.developer": "This tool was developed by",
+    "footer.developer.name": "Mohamed Atef",
+    "footer.developer.account": "Developer Account",
+    "footer.with": "❤️",
     
     // PWA
     "pwa.install": "Get App",
