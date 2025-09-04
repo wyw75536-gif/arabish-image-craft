@@ -11,13 +11,15 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ShareButton } from "@/components/ShareButton";
 import { useLanguage } from "@/context/LanguageContext";
-import { Download, VideoIcon, Trash2 } from "lucide-react";
+import { useUserStats } from "@/hooks/useUserStats";
+import { Download, VideoIcon, Trash2, Users, UserCheck } from "lucide-react";
 
 
 const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/";
 
 const Index = () => {
   const { language, t } = useLanguage();
+  const { totalUsers, activeUsers } = useUserStats();
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<Array<{ id: string; url: string; moving: boolean; style?: string }>>([]);
@@ -397,6 +399,20 @@ const Index = () => {
       <header className="px-6 pt-16 pb-10 bg-gradient-to-b from-primary/10 to-background text-center animate-fade-in">
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{t("site.title")}</h1>
         <p className="mt-3 text-muted-foreground text-sm md:text-base">{t("site.subtitle")}</p>
+        
+        {/* User Statistics */}
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm">
+          <div className="flex items-center gap-2 bg-background/50 backdrop-blur-sm px-4 py-2 rounded-full border border-border/40">
+            <Users className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">{t("stats.total.users")}:</span>
+            <span className="font-semibold text-foreground">{totalUsers.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-2 bg-background/50 backdrop-blur-sm px-4 py-2 rounded-full border border-border/40">
+            <UserCheck className="h-4 w-4 text-green-500" />
+            <span className="text-muted-foreground">{t("stats.active.users")}:</span>
+            <span className="font-semibold text-foreground">{activeUsers.toLocaleString()}</span>
+          </div>
+        </div>
       </header>
 
       <section className={`container mx-auto px-4 max-w-4xl ${language === "ar" ? "dir-rtl" : "dir-ltr"}`} dir={language === "ar" ? "rtl" : "ltr"}>

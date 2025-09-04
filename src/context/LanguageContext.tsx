@@ -48,6 +48,10 @@ const translations = {
     "footer.developer.account": "حساب المطور",
     "footer.with": "❤️",
     
+    // Statistics
+    "stats.total.users": "إجمالي المستخدمين",
+    "stats.active.users": "المستخدمين النشطين",
+    
     // PWA
     "pwa.install": "احصل علي التطبيق",
     "pwa.download": "حمّله الآن",
@@ -97,6 +101,10 @@ const translations = {
     "footer.developer.name": "Mohamed Atef",
     "footer.developer.account": "Developer Account",
     "footer.with": "❤️",
+    
+    // Statistics
+    "stats.total.users": "Total Users",
+    "stats.active.users": "Active Users",
     
     // PWA
     "pwa.install": "Get App",
