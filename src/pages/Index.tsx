@@ -527,7 +527,9 @@ const Index = () => {
                     </Button>
                     <ShareButton 
                       imageUrl={img.url} 
-                      description={lastPromptAr || t("site.subtitle")} 
+                      description={lastPromptAr || t("site.subtitle")}
+                      style={img.style}
+                      prompt={lastPromptAr || description.trim()}
                     />
                   </div>
                 </div>

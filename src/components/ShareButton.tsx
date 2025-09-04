@@ -7,27 +7,40 @@ import { useLanguage } from "@/context/LanguageContext";
 interface ShareButtonProps {
   imageUrl: string;
   description?: string;
+  style?: string;
+  prompt?: string;
 }
 
-export const ShareButton: React.FC<ShareButtonProps> = ({ imageUrl, description }) => {
+export const ShareButton: React.FC<ShareButtonProps> = ({ imageUrl, description, style, prompt }) => {
   const { t } = useLanguage();
 
   const handleShare = async () => {
     try {
+      // إنشاء ID للصورة يحتوي على بياناتها
+      const imageData = {
+        url: imageUrl,
+        prompt: prompt || description || '',
+        style: style || '',
+        timestamp: Date.now()
+      };
+      
+      const encodedData = btoa(JSON.stringify(imageData));
+      const shareUrl = `${window.location.origin}/image/${encodedData}`;
+      
       const shareData = {
         title: t("site.title"),
-        text: description || t("site.subtitle"),
-        url: imageUrl,
+        text: t("site.subtitle"),
+        url: shareUrl,
       };
 
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
         // Fallback - copy to clipboard
-        await navigator.clipboard.writeText(imageUrl);
+        await navigator.clipboard.writeText(shareUrl);
         toast({
           title: t("toast.share.success"),
-          description: imageUrl,
+          description: shareUrl,
         });
       }
     } catch (error) {

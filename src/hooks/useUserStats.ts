@@ -30,33 +30,53 @@ export const useUserStats = (): UserStats => {
   });
 
   useEffect(() => {
-    const calculateStats = () => {
-      const hours = getHoursSinceEpoch();
-      
-      // حساب إجمالي المستخدمين (يزيد بمعدل 50-1500 كل ساعة)
+    const calculateTotalUsers = () => {
+      const minutes = Math.floor(Date.now() / (1000 * 60 * 10)); // كل 10 دقائق
       let totalIncrease = 0;
-      for (let h = 0; h < hours; h++) {
-        const hourlyIncrease = Math.floor(seededRandom(h * 1000) * 1450) + 50; // 50-1500
-        totalIncrease += hourlyIncrease;
+      for (let m = 0; m < minutes; m++) {
+        const increase = Math.floor(seededRandom(m * 1000) * 1450) + 50; // 50-1500
+        totalIncrease += increase;
       }
-      
-      // حساب المستخدمين النشطين (يتذبذب بناءً على الوقت)
-      const activeVariation = Math.sin(hours * 0.1) * 0.3 + 0.7; // بين 0.4 و 1.0
-      const baseActive = MIN_ACTIVE + (MAX_ACTIVE - MIN_ACTIVE) * seededRandom(hours);
-      const finalActive = Math.floor(baseActive * activeVariation);
-      
+      return INITIAL_TOTAL + totalIncrease;
+    };
+
+    const calculateActiveUsers = () => {
+      const minutes = Math.floor(Date.now() / (1000 * 60)); // كل دقيقة
+      const activeVariation = Math.sin(minutes * 0.1) * 0.3 + 0.7;
+      const baseActive = MIN_ACTIVE + (MAX_ACTIVE - MIN_ACTIVE) * seededRandom(minutes);
+      return Math.max(MIN_ACTIVE, Math.floor(baseActive * activeVariation));
+    };
+
+    const updateStats = () => {
       setStats({
-        totalUsers: INITIAL_TOTAL + totalIncrease,
-        activeUsers: Math.max(MIN_ACTIVE, finalActive)
+        totalUsers: calculateTotalUsers(),
+        activeUsers: calculateActiveUsers()
       });
     };
 
-    calculateStats();
+    // تحديث فوري
+    updateStats();
     
-    // تحديث كل دقيقة للتأكد من الدقة
-    const interval = setInterval(calculateStats, 60000);
+    // تحديث المستخدمين النشطين كل دقيقة
+    const activeInterval = setInterval(() => {
+      setStats(prev => ({
+        ...prev,
+        activeUsers: calculateActiveUsers()
+      }));
+    }, 60000);
+
+    // تحديث الإجمالي كل 10 دقائق
+    const totalInterval = setInterval(() => {
+      setStats(prev => ({
+        ...prev,
+        totalUsers: calculateTotalUsers()
+      }));
+    }, 600000);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(activeInterval);
+      clearInterval(totalInterval);
+    };
   }, []);
 
   return stats;
