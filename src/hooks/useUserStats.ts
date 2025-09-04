@@ -31,9 +31,13 @@ export const useUserStats = (): UserStats => {
 
   useEffect(() => {
     const calculateTotalUsers = () => {
-      const minutes = Math.floor(Date.now() / (1000 * 60 * 10)); // كل 10 دقائق
+      // حساب عدد الـ 10 دقائق منذ 1 يناير 2024 (وليس 1970)
+      const epoch = new Date('2024-01-01T00:00:00Z').getTime();
+      const now = Date.now();
+      const tenMinuteIntervals = Math.floor((now - epoch) / (1000 * 60 * 10)); // عدد فترات الـ 10 دقائق
+      
       let totalIncrease = 0;
-      for (let m = 0; m < minutes; m++) {
+      for (let m = 0; m < tenMinuteIntervals; m++) {
         const increase = Math.floor(seededRandom(m * 1000) * 1450) + 50; // 50-1500
         totalIncrease += increase;
       }
@@ -41,7 +45,10 @@ export const useUserStats = (): UserStats => {
     };
 
     const calculateActiveUsers = () => {
-      const minutes = Math.floor(Date.now() / (1000 * 60)); // كل دقيقة
+      const epoch = new Date('2024-01-01T00:00:00Z').getTime();
+      const now = Date.now();
+      const minutes = Math.floor((now - epoch) / (1000 * 60)); // دقائق منذ 2024
+      
       const activeVariation = Math.sin(minutes * 0.1) * 0.3 + 0.7;
       const baseActive = MIN_ACTIVE + (MAX_ACTIVE - MIN_ACTIVE) * seededRandom(minutes);
       return Math.max(MIN_ACTIVE, Math.floor(baseActive * activeVariation));

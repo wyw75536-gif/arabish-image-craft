@@ -24,7 +24,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ imageUrl, description,
         timestamp: Date.now()
       };
       
-      const encodedData = btoa(JSON.stringify(imageData));
+      // تشفير البيانات بطريقة تدعم النص العربي
+      const jsonString = JSON.stringify(imageData);
+      const encodedData = btoa(encodeURIComponent(jsonString));
       const shareUrl = `${window.location.origin}/image/${encodedData}`;
       
       const shareData = {

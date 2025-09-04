@@ -22,9 +22,9 @@ const ImageView = () => {
     if (!imageId) return;
     
     try {
-      // فك تشفير بيانات الصورة من الـ ID
-      const decoded = atob(imageId);
-      const data = JSON.parse(decoded);
+      // فك تشفير بيانات الصورة من الـ ID (مع دعم النص العربي)
+      const decodedString = decodeURIComponent(atob(imageId));
+      const data = JSON.parse(decodedString);
       setImageData(data);
     } catch (error) {
       console.error('Error decoding image data:', error);
